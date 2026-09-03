@@ -3,6 +3,7 @@ import Webcam from 'react-webcam';
 import { Camera, RefreshCw, ChevronRight, Compass, QrCode } from 'lucide-react';
 import { toJpeg } from 'html-to-image';
 import { QRCodeCanvas } from 'qrcode.react';
+import removeBackground from '@imgly/background-removal';
 
 // ==========================================
 // 1. IMPORTAÇÃO DOS CENÁRIOS
@@ -97,45 +98,27 @@ export default function App() {
     setStep('confirm');
   };
 
-  const generateFuture = async () => {
+const generateFuture = async () => {
     setStep('processing');
     try {
-      // 1. Limpa o cabeçalho do Base64 gerado pela webcam
-      const base64Data = image.split(',')[1];
+      // 1. Converte a foto da webcam (que está em base64) para o formato que a IA entende
+      const res = await fetch(image);
+      const imageBlob = await res.blob();
+
+      // 2. A IA recorta o fundo direto no aparelho (o primeiro recorte pode levar uns segundos para baixar o modelo na cache)
+      const blobProcessado = await removeBackground(imageBlob);
       
-      // 2. Prepara os dados para a API
-      const formData = new FormData();
-      formData.append('image_file_b64', base64Data);
-      formData.append('size', 'auto');
-
-      // 3. Envia para a nuvem recortar o fundo
-      // COLOQUE SUA CHAVE DO REMOVE.BG AQUI NAS ASPAS!
-      const apiKey = 'WygzX8rUJcqTHbKJiTDJCGdP'; 
-
-      const response = await fetch('https://api.remove.bg/v1.0/removebg', {
-        method: 'POST',
-        headers: {
-          'X-Api-Key': apiKey,
-        },
-        body: formData
-      });
-
-      if (response.ok) {
-        // 4. Recebe a imagem já transparente e perfeita
-        const imageBlob = await response.blob();
-        const safeLocalUrl = URL.createObjectURL(imageBlob);
-        
-        setResultUrl(safeLocalUrl); 
-        setStep('result');
-      } else {
-        throw new Error('Falha no recorte da imagem');
-      }
+      // 3. Prepara a imagem final transparente para a tela
+      const safeLocalUrl = URL.createObjectURL(blobProcessado);
+      setResultUrl(safeLocalUrl); 
+      setStep('result');
+      
     } catch (error) {
-      console.error('Erro na API:', error);
-      alert('Tivemos um problema ao processar a foto. Tente novamente!');
+      console.error('Erro no recorte local:', error);
+      alert('Tivemos um problema ao recortar a foto. Tente novamente!');
       setStep('confirm'); 
     }
-  };
+  }
 
   const handleGenerateQR = async () => {
     setIsSharing(true);
