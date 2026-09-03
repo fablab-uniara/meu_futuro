@@ -129,7 +129,7 @@ const generateFuture = async () => {
       // 4. MÁGICA: A Inteligência Artificial local entra em ação! 
       // O primeiro clique pode demorar alguns segundos, mas os próximos são a jato.
       const config = {
-        publicPath: "https://static.imgly.com/@imgly/background-removal-data/1.3.0/dist/"
+        publicPath: "https://unpkg.com/@imgly/background-removal-data@1.3.0/dist/"
       };
       
       const blobTransparente = await removeBackground(blobImage, config);
