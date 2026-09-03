@@ -3,7 +3,7 @@ import Webcam from 'react-webcam';
 import { Camera, RefreshCw, ChevronRight, Compass, QrCode } from 'lucide-react';
 import { toJpeg } from 'html-to-image';
 import { QRCodeCanvas } from 'qrcode.react';
-import removeBackground from '@imgly/background-removal';
+import { removeBackground } from '@imgly/background-removal';
 
 // ==========================================
 // 1. IMPORTAÇÃO DOS CENÁRIOS
