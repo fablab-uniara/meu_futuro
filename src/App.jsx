@@ -94,6 +94,13 @@ export default function App() {
 
   const capture = () => {
     const imageSrc = webcamRef.current.getScreenshot();
+    
+    // Trava de segurança: se a câmera não capturou nada, bloqueia e avisa o aluno
+    if (!imageSrc) {
+      alert('Câmera não detectada ou bloqueada! Por favor, permita o acesso à câmera para tirar a foto.');
+      return;
+    }
+    
     setImage(imageSrc);
     setStep('confirm');
   };
