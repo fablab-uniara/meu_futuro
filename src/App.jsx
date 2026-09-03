@@ -1,9 +1,8 @@
 import { useState, useRef } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, RefreshCw, ChevronRight, Compass, QrCode } from 'lucide-react';
+import { Camera, RefreshCw, Compass, QrCode } from 'lucide-react';
 import { toJpeg } from 'html-to-image';
 import { QRCodeCanvas } from 'qrcode.react';
-import { removeBackground } from '@imgly/background-removal';
 
 // ==========================================
 // 1. IMPORTAÇÃO DOS CENÁRIOS
@@ -78,7 +77,6 @@ const powerData = {
 export default function App() {
   const [step, setStep] = useState('welcome');
   const [image, setImage] = useState(null);
-  const [resultUrl, setResultUrl] = useState(null);
   const [isSharing, setIsSharing] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   
@@ -93,57 +91,29 @@ export default function App() {
   const goldColor = "#C8A153";
 
   const capture = () => {
-    const imageSrc = webcamRef.current.getScreenshot();
-    
-    // Trava de segurança: se a câmera não capturou nada, bloqueia e avisa o aluno
+    const imageSrc = webcamRef.current?.getScreenshot();
+
+    // Trava de segurança: se a câmera ainda não estiver pronta ou não capturar nada,
+    // não avançamos para a tela de confirmação com uma imagem inválida.
     if (!imageSrc) {
-      alert('Câmera não detectada ou bloqueada! Por favor, permita o acesso à câmera para tirar a foto.');
+      alert('Câmera não detectada ou ainda não está pronta. Por favor, permita o acesso à câmera e tente novamente.');
       return;
     }
-    
+
     setImage(imageSrc);
     setStep('confirm');
   };
 
-const generateFuture = async () => {
-    setStep('processing');
-    try {
-      // 1. Pega a foto tirada e cria uma imagem virtual
-      const img = new Image();
-      img.src = image;
-      
-      // 2. Espera a imagem carregar
-      await new Promise((resolve) => {
-        img.onload = resolve;
-      });
-
-      // 3. Usa um Canvas para converter a imagem base64 em um formato (Blob) que a IA entende
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      
-      const blobImage = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
-
-      // 4. MÁGICA: A Inteligência Artificial local entra em ação! 
-      // O primeiro clique pode demorar alguns segundos, mas os próximos são a jato.
-      const config = {
-        publicPath: "https://unpkg.com/@imgly/background-removal-data@1.3.0/dist/"
-      };
-      
-      const blobTransparente = await removeBackground(blobImage, config);
-      
-      // 5. Prepara a imagem recortada para a tela
-      const safeLocalUrl = URL.createObjectURL(blobTransparente);
-      setResultUrl(safeLocalUrl); 
-      setStep('result');
-      
-    } catch (error) {
-      console.error('Erro na Inteligência Artificial Local:', error);
-      alert('Tivemos um problema ao recortar a foto. O rostinho não foi detectado direito, tente novamente!');
-      setStep('confirm'); 
+  const generateFuture = () => {
+    if (!image) {
+      alert('Nenhuma foto foi capturada. Por favor, tire a foto novamente.');
+      setStep('camera');
+      return;
     }
+
+    // Sem recorte de fundo: a foto aprovada segue diretamente para a montagem.
+    // O cenário, os textos, o QR Code e os demais serviços do app permanecem iguais.
+    setStep('result');
   };
 
   const handleGenerateQR = async () => {
@@ -228,7 +198,7 @@ const generateFuture = async () => {
           <h1 className="text-2xl font-black mb-6 uppercase text-center">{currentPower.title}</h1>
           
           <div className="rounded-xl overflow-hidden mb-6 border border-gray-800 w-full aspect-[3/4] bg-gray-900 flex items-center justify-center relative">
-            <Webcam audio={false} ref={webcamRef} screenshotFormat="image/jpeg" videoConstraints={{ facingMode: "user" }} className="absolute min-w-full min-h-full object-cover" />
+            <Webcam audio={false} ref={webcamRef} screenshotFormat="image/jpeg" screenshotQuality={0.95} videoConstraints={{ facingMode: "user" }} className="absolute min-w-full min-h-full object-cover" />
           </div>
 
           <button onClick={capture} className="bg-white text-black w-full py-4 font-bold flex items-center justify-center gap-2">
@@ -252,14 +222,6 @@ const generateFuture = async () => {
         </div>
       )}
 
-      {step === 'processing' && (
-        <div className="text-center animate-pulse flex flex-col items-center">
-          <RefreshCw size={40} style={{ color: goldColor }} className="mb-6 animate-spin" />
-          <h1 className="text-2xl font-black mb-4">SEU FUTURO ESTÁ SENDO CONSTRUÍDO...</h1>
-          <p className="text-gray-400 font-mono text-sm">Projetando possibilidades...</p>
-        </div>
-      )}
-
       {step === 'result' && (
         <div className="w-full max-w-sm flex flex-col items-center animate-in slide-in-from-bottom-4 duration-700">
           
@@ -278,7 +240,7 @@ const generateFuture = async () => {
             {/* A Foto do Aluno */}
             <div style={{ position: 'absolute', bottom: '45%', left: 0, right: 0, height: '70%', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', zIndex: 10 }}>
               <img 
-                src={resultUrl} 
+                src={image}
                 alt="Aluno 2032"
                 style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
               />
