@@ -101,24 +101,39 @@ export default function App() {
 const generateFuture = async () => {
     setStep('processing');
     try {
-      // 1. Converte a foto da webcam (que está em base64) para o formato que a IA entende
-      const res = await fetch(image);
-      const imageBlob = await res.blob();
-
-      // 2. A IA recorta o fundo direto no aparelho (o primeiro recorte pode levar uns segundos para baixar o modelo na cache)
-      const blobProcessado = await removeBackground(imageBlob);
+      // 1. Pega a foto tirada e cria uma imagem virtual
+      const img = new Image();
+      img.src = image;
       
-      // 3. Prepara a imagem final transparente para a tela
-      const safeLocalUrl = URL.createObjectURL(blobProcessado);
+      // 2. Espera a imagem carregar
+      await new Promise((resolve) => {
+        img.onload = resolve;
+      });
+
+      // 3. Usa um Canvas para converter a imagem base64 em um formato (Blob) que a IA entende
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      
+      const blobImage = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+
+      // 4. MÁGICA: A Inteligência Artificial local entra em ação! 
+      // O primeiro clique pode demorar alguns segundos, mas os próximos são a jato.
+      const blobTransparente = await removeBackground(blobImage);
+      
+      // 5. Prepara a imagem recortada para a tela
+      const safeLocalUrl = URL.createObjectURL(blobTransparente);
       setResultUrl(safeLocalUrl); 
       setStep('result');
       
     } catch (error) {
-      console.error('Erro no recorte local:', error);
-      alert('Tivemos um problema ao recortar a foto. Tente novamente!');
+      console.error('Erro na Inteligência Artificial Local:', error);
+      alert('Tivemos um problema ao recortar a foto. O rostinho não foi detectado direito, tente novamente!');
       setStep('confirm'); 
     }
-  }
+  };
 
   const handleGenerateQR = async () => {
     setIsSharing(true);
